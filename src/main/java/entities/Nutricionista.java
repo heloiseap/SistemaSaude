@@ -1,6 +1,7 @@
 package entities;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -9,7 +10,6 @@ import lombok.Setter;
 @Table(name = "Nutricionista")
 @Getter
 @Setter
-@NoArgsConstructor
 public class Nutricionista extends Funcionario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,21 +1,24 @@
 package dtos;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import entities.Endereco;
+import lombok.*;
 
-@Getter
-@Setter
-@NoArgsConstructor
+import java.time.LocalDate;
+import java.util.Date;
+
+@Data
 @AllArgsConstructor
-
 public class PacienteResponse {
+    private Long id;
     private String nome;
-    //private Date dataNascimento;
-    //private String cpf;
+    @JsonSerialize
+    @JsonFormat(pattern = "dd/MM/yyyy")
+    private LocalDate dataNascimento;
+    private String cpf;
     private String telefone;
     private String email;
-    //private Endereco endereco;
+    private Endereco endereco;
 
 }

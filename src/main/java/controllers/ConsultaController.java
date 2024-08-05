@@ -5,6 +5,7 @@ import dtos.ConsultaResponse;
 
 import entities.Consulta;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import services.ConsultaService;
 
@@ -12,7 +13,7 @@ import services.ConsultaService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/consultas")
+@RequestMapping(value = "/consultas")
 public class ConsultaController {
     private final ConsultaService service;
 
@@ -20,14 +21,18 @@ public class ConsultaController {
 
     @PostMapping("/cadastros")
     @ResponseStatus(HttpStatus.CREATED)
-    public void cadastraConsulta(ConsultaRequest consultaRequest){
-        service.salvarConsulta(consultaRequest);
+    public ConsultaResponse salvarConsulta(@RequestBody ConsultaRequest request) {
+        return service.salvarConsulta(request);
     }
 
-    @PutMapping("/alterar")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public void alteraConsulta(ConsultaRequest consultaRequest){
-        service.alterarConsulta(consultaRequest);
+    @PutMapping("/{id}")
+    public ResponseEntity<ConsultaResponse> update(@PathVariable long id, @RequestBody ConsultaRequest request) {
+        ConsultaResponse consulta = service.atualizarConsulta(id, request);
+        if (consulta != null) {
+            return ResponseEntity.ok(consulta);
+        } else {
+            throw new RuntimeException("404");
+        }
     }
 
     @DeleteMapping("/{id}")

@@ -6,104 +6,119 @@ import entities.Nutricionista;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import repositories.EnderecoRepository;
 import repositories.NutricionistaRepository;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class NutricionistaService {
 
-    private final NutricionistaRepository repository;
+    private final NutricionistaRepository nutricionistaRepository;
+    private final EnderecoRepository enderecoRepository;
 
-    //create
-    public NutricionistaResponse salvarNutricionista(NutricionistaRequest request) {
-        if (repository.findByCrn(request.getCrn()).isEmpty()){
-            Nutricionista entity = new Nutricionista();
-            entity.setCrn(request.getCrn());
-            entity.setEspecialidade(request.getEspecialidade());
-            entity.setMatricula(request.getMatricula());
-            entity.setEndereco(request.getEndereco());
-            entity.setTempoExperiencia(request.getTempoExperiencia());
-            repository.save(entity);
 
-            NutricionistaResponse response = new NutricionistaResponse();
-            response.setCrn(request.getCrn());
-            response.setEspecialidade(request.getEspecialidade());
-            response.setTempoExperiencia(request.getTempoExperiencia());
-            response.setMatricula(request.getMatricula());
-            return response;
-
-        }
-        else {
-            throw new DuplicateKeyException(
-              "Nutricionista já no cadastro."
-            );
-
-        }
+    public NutricionistaService(NutricionistaRepository nutricionistaRepository, EnderecoRepository enderecoRepository) {
+        this.nutricionistaRepository = nutricionistaRepository;
+        this.enderecoRepository = enderecoRepository;
     }
-
-
-    //read
-    public Optional<Nutricionista> buscarNutricionistaPorEspecialidade(String especialidade) {
-        return repository.findAllByEspecialidade(especialidade);
-    }
-    //todo: mapeamento
-    //pesquisar parcialmente
-
-    public Optional<Nutricionista> buscarNutricionistaPorCrn(String crn) {
-        return repository.findByCrn(crn);
-    }
-    //todo: mapeamento
-    //pesquisar parcialmente
 
     public List<NutricionistaResponse> listarNutricionistas() {
-        return repository.findAll().stream().map(
-                nutricionistaEntity -> new NutricionistaResponse(
-                        nutricionistaEntity.getCrn(),
-                        nutricionistaEntity.getEspecialidade(),
-                        nutricionistaEntity.getMatricula(),
-                        nutricionistaEntity.getTempoExperiencia()
+        return nutricionistaRepository.findAll().stream().map(
+                nutricionista -> new NutricionistaResponse(
+                        nutricionista.getId(),
+                        nutricionista.getMatricula(),
+                        nutricionista.getTempoExperiencia(),
+                        nutricionista.getEndereco(),
+                        nutricionista.getCrn(),
+                        nutricionista.getEspecialidade()
                 )
         ).collect(Collectors.toList());
     }
 
-
-    //update
-
-    //todo: conseguir id por mapeamento do request
-
-    public NutricionistaResponse alterarNutricionista(NutricionistaRequest request) {
-        Nutricionista entity = new Nutricionista();
-        entity.setEndereco(request.getEndereco());
-        entity.setCrn(request.getCrn());
-        entity.setEspecialidade(request.getEspecialidade());
-        entity.setTempoExperiencia(request.getTempoExperiencia());
-        entity.setMatricula(request.getMatricula());
-        repository.save(entity);
-
-        NutricionistaResponse response = new NutricionistaResponse();
-        response.setCrn(request.getCrn());
-        response.setEspecialidade(request.getEspecialidade());
-        response.setTempoExperiencia(request.getTempoExperiencia());
-        response.setMatricula(request.getMatricula());
-        return response;
+    public NutricionistaResponse buscarNutricionista(Long id){
+        Nutricionista nutricionista = nutricionistaRepository.findById(id).orElse(null);
+        if (nutricionista != null) {
+            return new NutricionistaResponse(
+                    nutricionista.getId(),
+                    nutricionista.getMatricula(),
+                    nutricionista.getTempoExperiencia(),
+                    nutricionista.getEndereco(),
+                    nutricionista.getCrn(),
+                    nutricionista.getEspecialidade()
+            );
+        }
+        return null;
     }
 
-    //delete
-    public void apagarNutricionista(Nutricionista nutricionista) {
-        repository.delete(nutricionista);
+    public NutricionistaResponse salvarNutricionista(NutricionistaRequest request) {
+        if (nutricionistaRepository.findByCrn(request.getCrn()).isPresent()) {
+            throw new RuntimeException("Já existe cadastro de nutricionista com este crn.");
+        }
+        Nutricionista nutricionista = mapearRequest(request);
+        Nutricionista entitySalva = nutricionistaRepository.save(nutricionista);
+
+        return new NutricionistaResponse(
+                entitySalva.getId(),
+                entitySalva.getMatricula(),
+                entitySalva.getTempoExperiencia(),
+                entitySalva.getEndereco(),
+                entitySalva.getCrn(),
+                entitySalva.getEspecialidade()
+        );
     }
 
-    //metodos
-    public void adicionarUmAnoExperiencia(Nutricionista nutricionista){
+    private Nutricionista mapearRequest(NutricionistaRequest source){
+        Nutricionista target = new Nutricionista();
+        target.setMatricula(source.getMatricula());
+        target.setTempoExperiencia(source.getTempoExperiencia());
+        target.setCrn(source.getCrn());
+        target.setEspecialidade(source.getEspecialidade());
+        target.setEndereco(enderecoRepository.findById(source.getEndereco().getId()).orElse(null));
+        return target;
+    }
+
+    public NutricionistaResponse atualizarNutricionista(Long id, NutricionistaRequest request) {
+        Nutricionista nutricionista = nutricionistaRepository.findById(id).orElse(null);
+
+        assert nutricionista != null;
+        if (!Objects.equals(nutricionista.getCrn(), request.getCrn()) &&
+                nutricionistaRepository.findByCrn(request.getCrn()).isPresent()) {
+            throw new RuntimeException("Já existe cadastro de nutricionista com este crn.");
+        }
+
+        nutricionista.setMatricula(request.getMatricula());
+        nutricionista.setTempoExperiencia(request.getTempoExperiencia());
+        nutricionista.setCrn(request.getCrn());
+        nutricionista.setEspecialidade(request.getEspecialidade());
+        nutricionista.setEndereco(enderecoRepository.findById(request.getEndereco().getId()).orElse(null));
+
+        nutricionistaRepository.save(nutricionista);
+        return new NutricionistaResponse(nutricionista.getId(),
+                nutricionista.getMatricula(),
+                nutricionista.getTempoExperiencia(),
+                nutricionista.getEndereco(),
+                nutricionista.getCrn(),
+                nutricionista.getEspecialidade()
+        );
+    }
+
+    public void removerNutricionista(Long id) {
+        nutricionistaRepository.deleteById(id);
+    }
+
+    public void adicionarAnoExperiencia(Long id) {
+        Nutricionista nutricionista = nutricionistaRepository.findById(id).orElse(null);
+        assert nutricionista != null;
         nutricionista.setTempoExperiencia(nutricionista.getTempoExperiencia() + 1);
     }
+
     public void adicionarEspecialidade(Nutricionista nutricionista, String especialidade) {
         nutricionista.setEspecialidade(nutricionista.getEspecialidade() + ",\n" + especialidade);
     }
-
 
 }

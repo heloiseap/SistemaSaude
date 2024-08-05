@@ -6,6 +6,7 @@ import entities.Paciente;
 import lombok.AllArgsConstructor;
 import mappers.PacienteMapper;
 import org.springframework.stereotype.Service;
+import repositories.EnderecoRepository;
 import repositories.PacienteRepository;
 
 import java.util.List;
@@ -13,73 +14,97 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor
 public class PacienteService {
 
-    private final PacienteRepository repository;
 
-    //create
-    public PacienteResponse salvarPaciente(PacienteRequest request) {
-        Paciente entity = new Paciente();
-        entity.setNome(request.getNome());
-        entity.setEmail(request.getEmail());
-        entity.setCpf(request.getCpf());
-        entity.setEndereco(request.getEndereco());
-        entity.setTelefone(request.getTelefone());
-        entity.setDataNascimento(request.getDataNascimento());
-        repository.save(entity);
+    private final PacienteRepository pacienteRepository;
+    private final EnderecoRepository enderecoRepository;
 
-        PacienteResponse response = new PacienteResponse();
-        response.setNome(request.getNome());
-        response.setTelefone(request.getTelefone());
-        response.setEmail(request.getEmail());
-        return response;
+
+    public PacienteService(PacienteRepository pacienteRepository, EnderecoRepository enderecoRepository) {
+        this.pacienteRepository = pacienteRepository;
+        this.enderecoRepository = enderecoRepository;
     }
-
-
-    //read
-    public Optional<PacienteResponse> buscarPacientePorCpf(String cpf) {
-        return Optional.ofNullable(PacienteMapper.map(repository.findByCpf(cpf)));
-    }
-
-    public Optional<Paciente> buscarPacientePorNome(String nome) {
-        return Optional.ofNullable(repository.findByNome(nome));
-    }
-    //pesquisar parcialmente
 
     public List<PacienteResponse> listarPacientes() {
-        return repository.findAll().stream().map(
-                pacienteEntity -> new PacienteResponse(
-                        pacienteEntity.getNome(),
-                        pacienteEntity.getTelefone(),
-                        pacienteEntity.getEmail()
+        return pacienteRepository.findAll().stream().map(
+                paciente -> new PacienteResponse(
+                        paciente.getId(),
+                        paciente.getNome(),
+                        paciente.getDataNascimento(),
+                        paciente.getCpf(),
+                        paciente.getTelefone(),
+                        paciente.getEmail(),
+                        paciente.getEndereco()
                 )
         ).collect(Collectors.toList());
     }
 
-
-    //update
-
-    //todo: conseguir id por mapeamento do request
-
-    public PacienteResponse alterarPaciente(PacienteRequest request) {
-        Paciente entity = new Paciente();
-        entity.setEndereco(request.getEndereco());
-        entity.setNome(request.getNome());
-        entity.setTelefone(request.getTelefone());
-        entity.setEmail(request.getEmail());
-        entity.setDataNascimento(request.getDataNascimento());
-        repository.save(entity);
-
-        PacienteResponse response = new PacienteResponse();
-        response.setNome(request.getNome());
-        response.setTelefone(request.getTelefone());
-        response.setEmail(request.getEmail());
-        return response;
+    public PacienteResponse buscarPaciente(Long id){
+        Paciente paciente = pacienteRepository.findById(id).orElse(null);
+        if (paciente != null) {
+            return new PacienteResponse(
+                    paciente.getId(),
+                    paciente.getNome(),
+                    paciente.getDataNascimento(),
+                    paciente.getCpf(),
+                    paciente.getTelefone(),
+                    paciente.getEmail(),
+                    paciente.getEndereco()
+            );
+        }
+        return null;
     }
 
-    //delete
-    public void apagarPaciente(Paciente paciente) {
-        repository.delete(paciente);
+    public PacienteResponse salvarPaciente(PacienteRequest request) {
+        Paciente paciente = mapearRequest(request);
+        Paciente entitySalva = pacienteRepository.save(paciente);
+
+        return new PacienteResponse(entitySalva.getId(),
+                entitySalva.getNome(),
+                entitySalva.getDataNascimento(),
+                entitySalva.getCpf(),
+                entitySalva.getTelefone(),
+                entitySalva.getEmail(),
+                entitySalva.getEndereco()
+        );
     }
+
+    private Paciente mapearRequest(PacienteRequest source){
+        Paciente target = new Paciente();
+        target.setNome(source.getNome());
+        target.setDataNascimento(source.getDataNascimento());
+        target.setCpf(source.getCpf());
+        target.setTelefone(source.getTelefone());
+        target.setEmail(source.getEmail());
+        target.setEndereco(enderecoRepository.findById(source.getEndereco().getId()).orElse(null));
+        return target;
+    }
+
+    public PacienteResponse atualizarPaciente(Long id, PacienteRequest request) {
+        Paciente paciente = pacienteRepository.findById(id).orElse(null);
+        assert paciente != null;
+        paciente.setNome(request.getNome());
+        paciente.setDataNascimento(request.getDataNascimento());
+        paciente.setCpf(request.getCpf());
+        paciente.setTelefone(request.getTelefone());
+        paciente.setEmail(request.getEmail());
+        paciente.setEndereco(enderecoRepository.findById(request.getEndereco().getId()).orElse(null));
+
+        pacienteRepository.save(paciente);
+
+        return new PacienteResponse(paciente.getId(),
+                paciente.getNome(),
+                paciente.getDataNascimento(),
+                paciente.getCpf(),
+                paciente.getTelefone(),
+                paciente.getEmail(),
+                paciente.getEndereco()
+        );
+    }
+
+    public void removerPaciente(Long id) {
+        pacienteRepository.deleteById(id);
+    }
+
 }

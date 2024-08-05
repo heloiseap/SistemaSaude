@@ -8,9 +8,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EnderecoResponse {
-    //private String logradouro;
-    //private String cidade;
-    //private String estado;
-    private String cep;
+    private Long id;
+    private String logradouro;
+    private String estado;
+    private String cidade;
     private Integer numero;
+    private String cep;
+
 }
